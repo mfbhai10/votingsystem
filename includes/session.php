@@ -33,7 +33,11 @@ if (isset($_SESSION['voter'])) {
             $current_election = $estmt->get_result()->fetch_assoc();
         }
     }
-} else {
+} 
+else if (isset($_SESSION['anonymous'])) {
+    
+}
+else {
     echo 'Error: Voter not logged in!';
     header('Location: index.php');
     exit();

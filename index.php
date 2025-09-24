@@ -1,5 +1,7 @@
 <?php
   	session_start();
+	$_SESSION['anonymous'] = "anonymous";
+
   	if(isset($_SESSION['admin'])){
     	header('location: admin/home.php');
   	}
@@ -32,8 +34,15 @@
           			<button type="submit" class="btn btn-primary btn-block btn-flat" name="login"><i class="fa fa-sign-in"></i> Sign In</button>
         		</div>
       		</div>
-			
     	</form>
+
+    	<!-- Add Sign Up Link -->
+    	<div class="social-auth-links text-center">
+			<p>- OR -</p>
+			<a href="signup.php" class="btn btn-block btn-social btn-facebook btn-flat">
+				<i class="fa fa-user-plus"></i> Sign Up as Voter
+			</a>
+		</div>
   	</div>
   	<?php
   		if(isset($_SESSION['error'])){

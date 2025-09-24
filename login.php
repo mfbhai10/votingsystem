@@ -2,6 +2,8 @@
 	session_start();
 	include 'includes/conn.php';
 
+	
+
 	if(isset($_POST['login'])){
 		$voter = $_POST['voter'];
 		$password = $_POST['password'];
@@ -23,9 +25,7 @@
 		}
 		
 	}
-	else{
-		$_SESSION['error'] = 'Input voter credentials first';
-	}
+	
 
 	header('location: index.php');
 
