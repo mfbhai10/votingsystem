@@ -43,7 +43,7 @@ CREATE TABLE `admin` (
 --
 
 INSERT INTO `admin` (`id`, `username`, `password`, `firstname`, `lastname`, `photo`, `created_on`) VALUES
-(1, 'admin', '$2y$10$eoDZ8wGMOvMB/l/jF8UKEeBv2Co97I5CqmkIu.sUQxisnpqVFZ8wm', 'Admin', 'Admin', 'facebook-profile-image.jpeg', '2018-04-02');
+(1, 'admin', '$2y$10$eoDZ8wGMOvMB/l/jF8UKEeBv2Co97I5CqmkIu.sUQxisnpqVFZ8wm', 'Admin', 'Admin', 'facebook-profile-image.jpeg', '2025-09-02');
 
 -- --------------------------------------------------------
 
@@ -248,12 +248,3 @@ ALTER TABLE voters
   ADD CONSTRAINT fk_voters_election
   FOREIGN KEY (election_id) REFERENCES elections(id)
   ON DELETE CASCADE;
-
-
-
-
-
-
-
-
-
