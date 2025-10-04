@@ -18,7 +18,7 @@
               <p><?= htmlspecialchars($user['firstname'].' '.$user['lastname']) ?><small>Administrator</small></p>
             </li>
             <li class="user-footer">
-              <div class="pull-left"><a href="#profile" data-toggle="modal" class="btn btn-default btn-flat">Profile</a></div>
+              <div class="pull-left"><a href="#profile" data-toggle="modal" class="btn btn-default btn-flat" id="admin_profile">Profile Update</a></div>
               <div class="pull-right"><a href="logout.php" class="btn btn-default btn-flat">Sign out</a></div>
             </li>
           </ul>
@@ -27,3 +27,4 @@
     </div>
   </nav>
 </header>
+<?php include 'includes/profile_modal.php'; ?>
