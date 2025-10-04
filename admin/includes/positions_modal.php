@@ -17,6 +17,22 @@
           <input type="number" class="form-control" name="max_vote" min="1" value="1" required>
           <p class="help-block">এক পজিশনে একজন ভোটার সর্বোচ্চ কতজন প্রার্থীকে বাছাই করতে পারবে</p>
         </div>
+        
+        <!-- Election Selection Dropdown -->
+        <div class="form-group"><label>Election</label>
+          <select class="form-control" name="election_id" required>
+            <option value="">Select Election</option>
+            <?php
+              // Fetch open elections
+              $stmt = $conn->prepare("SELECT * FROM elections WHERE status = 'open'"); // Only open elections
+              $stmt->execute();
+              $elections = $stmt->get_result();
+              while ($election = $elections->fetch_assoc()) {
+                echo "<option value='" . $election['id'] . "'>" . htmlspecialchars($election['title']) . "</option>";
+              }
+            ?>
+          </select>
+        </div>
       </div>
       <div class="modal-footer">
         <button class="btn btn-primary" name="add">Create</button>
