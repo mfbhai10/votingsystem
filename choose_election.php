@@ -4,7 +4,10 @@ require 'includes/session.php';
 // Logged-in voter is available as $voter
 
 // Fetch open elections
-$stmt = $conn->prepare("SELECT id, title, starts_at, ends_at FROM elections WHERE status='open' AND starts_at <= NOW() AND ends_at >= NOW() ORDER BY ends_at ASC");
+$stmt = $conn->prepare("SELECT id, title, starts_at, ends_at 
+FROM elections 
+WHERE status='open' AND starts_at <= NOW() AND ends_at >= NOW() 
+ORDER BY ends_at ASC");
 $stmt->execute();
 $res = $stmt->get_result();
 ?>
