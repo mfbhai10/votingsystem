@@ -16,6 +16,10 @@
   	<div class="login-logo">
   		<b>Voting System</b>
   	</div>
+
+	<?php if (isset($_SESSION['success'])): ?>
+            <div class="alert alert-success"><?= $_SESSION['success']; unset($_SESSION['success']); ?></div>
+          <?php endif; ?>
   
   	<div class="login-box-body">
     	<p class="login-box-msg">Sign in to start your session</p>
