@@ -82,25 +82,28 @@ $elections = $stmt->get_result();
   </div></div>
 </div>
 
-<!-- Update Photo -->
+<!-- Edit Photo Modal -->
 <div class="modal fade" id="edit_photo">
-  <div class="modal-dialog"><div class="modal-content">
-    <form method="post" action="voters_photo.php" enctype="multipart/form-data">
-      <input type="hidden" name="id" class="id">
-      <div class="modal-header">
-        <button type="button" class="close" data-dismiss="modal">&times;</button>
-        <h4 class="modal-title">Update Photo</h4>
-      </div>
-      <div class="modal-body">
-        <div class="form-group"><label>Photo</label>
-          <input type="file" class="form-control" name="photo" accept="image/*" required>
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="post" action="voters_photo.php" enctype="multipart/form-data">
+        <input type="hidden" name="id" class="id">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal">&times;</button>
+          <h4 class="modal-title">Update Photo</h4>
         </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-primary" name="upload">Upload</button>
-      </div>
-    </form>
-  </div></div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Photo</label>
+            <input type="file" class="form-control" name="photo" accept="image/*" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-primary" name="upload">Upload</button>
+        </div>
+      </form>
+    </div>
+  </div>
 </div>
 
 <!-- Delete Voter -->

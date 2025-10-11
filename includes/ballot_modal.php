@@ -1,31 +1,68 @@
+<!-- Preview -->
+<div class="modal fade" id="preview_modal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                  <span aria-hidden="true">&times;</span></button>
+              <h4 class="modal-title">Vote Preview</h4>
+            </div>
+            <div class="modal-body">
+              <div id="preview_body"></div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-default btn-flat pull-left" data-dismiss="modal"><i class="fa fa-close"></i> Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Platform -->
+<div class="modal fade" id="platform">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                  <span aria-hidden="true">&times;</span></button>
+              <h4 class="modal-title"><b><span class="candidate"></b></h4>
+            </div>
+            <div class="modal-body">
+              <p id="plat_view"></p>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-default btn-flat pull-left" data-dismiss="modal"><i class="fa fa-close"></i> Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- View Ballot -->
 <div class="modal fade" id="view">
-  <div class="modal-dialog"><div class="modal-content">
-    <div class="modal-header">
-      <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-      <h4 class="modal-title">Your Votes</h4>
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                  <span aria-hidden="true">&times;</span></button>
+              <h4 class="modal-title">Your Votes</h4>
+            </div>
+            <div class="modal-body">
+              <?php
+                $id = $voter['id'];
+                $sql = "SELECT *, candidates.firstname AS canfirst, candidates.lastname AS canlast FROM votes LEFT JOIN candidates ON candidates.id=votes.candidate_id LEFT JOIN positions ON positions.id=votes.position_id WHERE voters_id = '$id'  ORDER BY positions.priority ASC";
+                $query = $conn->query($sql);
+                while($row = $query->fetch_assoc()){
+                  echo "
+                    <div class='row votelist'>
+                      <span class='col-sm-4'><span class='pull-right'><b>".$row['description']." :</b></span></span> 
+                      <span class='col-sm-8'>".$row['canfirst']." ".$row['canlast']."</span>
+                    </div>
+                  ";
+                }
+              ?>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-default btn-flat pull-left" data-dismiss="modal"><i class="fa fa-close"></i> Close</button>
+            </div>
+        </div>
     </div>
-    <div class="modal-body">
-      <?php
-        $id = $voter['id'];
-        $electionId = (int)$current_election['id'];
-        $sql = "SELECT positions.description, c.firstname AS canfirst, c.lastname AS canlast
-                FROM votes v
-                JOIN candidates c ON c.id=v.candidate_id
-                JOIN positions  p ON p.id=v.position_id
-                WHERE v.voters_id=? AND v.election_id=?
-                ORDER BY p.priority ASC";
-        $stmt = $conn->prepare($sql);
-        $stmt->bind_param('ii', $id, $electionId);
-        $stmt->execute();
-        $q = $stmt->get_result();
-        while($row = $q->fetch_assoc()){
-          echo "<div class='row votelist'><span class='col-sm-4'><span class='pull-right'><b>".htmlspecialchars($row['description'])." :</b></span></span><span class='col-sm-8'>".htmlspecialchars($row['canfirst'].' '.$row['canlast'])."</span></div>";
-        }
-      ?>
-    </div>
-    <div class="modal-footer">
-      <button type="button" class="btn btn-default btn-flat pull-left" data-dismiss="modal"><i class="fa fa-close"></i> Close</button>
-    </div>
-  </div></div>
 </div>

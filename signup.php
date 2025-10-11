@@ -1,4 +1,5 @@
 <?php
+session_start();
 include 'includes/session.php';  // Include session for managing sessions
 
 // Fetch available elections
@@ -52,10 +53,11 @@ if (isset($_POST['signup'])) {
     $stmt->bind_param('sssssi', $voters_id, $firstname, $lastname, $hashed, $photoName, $election_id);
 
     if ($stmt->execute()) {
-        // Registration successful
+        // Registration successful, store election_id in session
+        $_SESSION['election_id'] = $election_id;  // Store selected election ID in session
         $_SESSION['success'] = 'Voter registered successfully';
         $_SESSION['voter_id'] = $conn->insert_id;  // Store the voter ID in session
-        header('Location: login.php');  // Redirect to choose election page
+        header('Location: index.php');  // Redirect to login page
         exit;
     } else {
         // Handle duplicate voters_id or other errors
