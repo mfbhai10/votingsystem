@@ -1,65 +1,63 @@
 <?php
-  	session_start();
-	$_SESSION['anonymous'] = "anonymous";
+    session_start();
+    $_SESSION['anonymous'] = "anonymous";
 
-  	if(isset($_SESSION['admin'])){
-    	header('location: admin/home.php');
-  	}
+    if(isset($_SESSION['admin'])){
+        header('location: admin/home.php');
+    }
 
     if(isset($_SESSION['voter'])){
       header('location: home.php');
     }
 ?>
 <?php include 'includes/header.php'; ?>
-<body class="hold-transition login-page">
-<div class="login-box">
-  	<div class="login-logo">
-  		<b>Voting System</b>
-  	</div>
+<body class="hold-transition login-page" style="background-image: url('images/img8.jpg'); background-size: cover; height: 100vh; margin: 0; display: flex; justify-content: center; align-items: center;">
+    <div class="login-box" style="background: rgba(255, 255, 255, 0.9); border-radius: 15px; padding: 30px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);">
+        <div class="login-logo" style="font-size: 36px; color: #0056b3; text-align: center;">
+            <b>Voting System</b>
+        </div>
 
-	<?php if (isset($_SESSION['success'])): ?>
+        <?php if (isset($_SESSION['success'])): ?>
             <div class="alert alert-success"><?= $_SESSION['success']; unset($_SESSION['success']); ?></div>
-          <?php endif; ?>
-  
-  	<div class="login-box-body">
-    	<p class="login-box-msg">Sign in to start your session</p>
+        <?php endif; ?>
 
-    	<form action="login.php" method="POST">
-      		<div class="form-group has-feedback">
-        		<input type="text" class="form-control" name="voter" placeholder="Voter's ID" required>
-        		<span class="glyphicon glyphicon-user form-control-feedback"></span>
-      		</div>
-          <div class="form-group has-feedback">
-            <input type="password" class="form-control" name="password" placeholder="Password" required>
-            <span class="glyphicon glyphicon-lock form-control-feedback"></span>
-          </div>
-      		<div class="row">
-    			<div class="col-xs-4">
-          			<button type="submit" class="btn btn-primary btn-block btn-flat" name="login"><i class="fa fa-sign-in"></i> Sign In</button>
-        		</div>
-      		</div>
-    	</form>
+        <div class="login-box-body">
+            <p class="login-box-msg">Sign in to start your session</p>
 
-    	<!-- Add Sign Up Link -->
-    	<div class="social-auth-links text-center">
-			<p>- OR -</p>
-			<a href="signup.php" class="btn btn-block btn-social btn-facebook btn-flat">
-				<i class="fa fa-user-plus"></i> Sign Up as Voter
-			</a>
-		</div>
-  	</div>
-  	<?php
-  		if(isset($_SESSION['error'])){
-  			echo "
-  				<div class='callout callout-danger text-center mt20'>
-			  		<p>".$_SESSION['error']."</p> 
-			  	</div>
-  			";
-  			unset($_SESSION['error']);
-  		}
-  	?>
-</div>
-	
-<?php include 'includes/scripts.php' ?>
+            <form action="login.php" method="POST">
+                <div class="form-group has-feedback">
+                    <input type="text" class="form-control" name="voter" placeholder="Voter's ID" required>
+                    <span class="glyphicon glyphicon-user form-control-feedback"></span>
+                </div>
+                <div class="form-group has-feedback">
+                    <input type="password" class="form-control" name="password" placeholder="Password" required>
+                    <span class="glyphicon glyphicon-lock form-control-feedback"></span>
+                </div>
+                <div class="row">
+                    <div class="col-xs-12">
+                        <button type="submit" class="btn btn-primary btn-block btn-flat" name="login"><i class="fa fa-sign-in"></i> Sign In</button>
+                    </div>
+                </div>
+            </form>
+
+            <div class="social-auth-links text-center">
+                <p>- OR -</p>
+                <a href="signup.php" class="btn btn-block btn-social btn-facebook btn-flat">
+                    <i class="fa fa-user-plus"></i> Sign Up as Voter
+                </a>
+            </div>
+        </div>
+
+        <?php
+            if(isset($_SESSION['error'])){
+                echo "<div class='callout callout-danger text-center mt20'>
+                        <p>".$_SESSION['error']."</p>
+                      </div>";
+                unset($_SESSION['error']);
+            }
+        ?>
+    </div>
+
+<?php include 'includes/scripts.php'; ?>
 </body>
 </html>
