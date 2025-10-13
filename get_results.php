@@ -33,10 +33,34 @@ while ($position = $positions->fetch_assoc()) {
     $cstmt->execute();
     $winner = $cstmt->get_result()->fetch_assoc();
 
-    $resultsHtml .= "<h5>" . htmlspecialchars($position['description']) . ":</h5>";
-    $resultsHtml .= "<p><b>" . htmlspecialchars($winner['firstname'] . ' ' . $winner['lastname']) . "</b> with " . $winner['vote_count'] . " votes</p>";
+    // Create a Bootstrap card to display the election result for each position
+    $resultsHtml .= "
+        <div class='col-md-4 col-sm-6 mb-4'>
+            <div class='card' style='border-radius: 15px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);'>
+                <div class='card-header' style='background-color: #f0f8ff;'>
+                    <h5 class='card-title' style='color: #0056b3;'>
+                        <i class='fa fa-trophy'></i> " . htmlspecialchars($position['description']) . "
+                    </h5>
+                </div>
+                <div class='card-body'>
+                    <h6 class='card-subtitle mb-2 text-muted'>Winner:</h6>
+                    <p class='card-text'>
+                        <b>" . htmlspecialchars($winner['firstname'] . ' ' . $winner['lastname']) . "</b><br>
+                        Votes: " . $winner['vote_count'] . "
+                    </p>
+                    
+                </div>
+            </div>
+        </div>
+    ";
 }
 
-// Output the results HTML
-echo $resultsHtml;
+// Output the results HTML inside a responsive container
+echo "
+<div class='container my-5'>
+    <h2 class='text-center mb-4' style='color: #0056b3;'>Election Results</h2>
+    <div class='row'>
+        $resultsHtml
+    </div>
+</div>";
 ?>
