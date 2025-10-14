@@ -37,6 +37,8 @@ include 'includes/header.php';
                 <?php endwhile; ?>
               </div>
             <?php endif; ?>
+            <!-- Display All Elections Live Results -->
+            <div id="live-elections-results"></div>
           </div>
         </div>
       </section>
@@ -44,5 +46,50 @@ include 'includes/header.php';
   </div>
 </div>
 <?php include 'includes/scripts.php'; ?>
+
+<script>
+// Fetch and display live results for all elections
+function fetchAllLiveResults() {
+    $.ajax({
+        url: 'get_all_live_results.php',  // PHP script that fetches live vote counts for all elections
+        method: 'GET',
+        success: function(response) {
+            var data = JSON.parse(response);
+            var resultsHtml = '';
+            
+            data.forEach(function(election) {
+                resultsHtml += '<div class="card mb-4">';
+                resultsHtml += '<div class="card-header" style="background-color: #3498db; color: white; border-radius: 15px 15px 0 0;">';
+                resultsHtml += '<h5 class="card-title text-center">' + election.election_title + '</h5>';
+                resultsHtml += '</div>';
+                resultsHtml += '<div class="card-body">';
+                
+                election.positions.forEach(function(position) {
+                    resultsHtml += '<h6>' + position.position + ':</h6>';
+                    resultsHtml += '<ul>';
+                    position.candidates.forEach(function(candidate) {
+                        resultsHtml += '<li>' + candidate.candidate + ': ' + candidate.vote_count + ' votes</li>';
+                    });
+                    resultsHtml += '</ul>';
+                });
+
+                resultsHtml += '</div></div>';
+            });
+
+            // Update the page with the election results
+            $('#live-elections-results').html(resultsHtml);
+        },
+        error: function() {
+            $('#live-elections-results').html('<p>Error fetching live results.</p>');
+        }
+    });
+}
+
+// Optionally, set up polling to fetch results every 5 seconds (you can adjust the interval)
+setInterval(fetchAllLiveResults, 5000);
+
+// Call it once initially to populate the results immediately
+fetchAllLiveResults();
+</script>
 </body>
 </html>
