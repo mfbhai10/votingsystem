@@ -65,6 +65,10 @@ include 'includes/header.php';
                   <h3>You have already voted in this election.</h3>
                   <a href="#view" data-toggle="modal" class="btn btn-flat btn-primary btn-lg">View Ballot</a>
                 </div>
+                <!-- Show Result Button -->
+              <div class="text-center">
+                <button id="showResultBtn" class="btn btn-primary">Show Results</button>
+              </div>
               <?php else: ?>
                 <form method="POST" id="ballotForm" action="submit_ballot.php">
                   <?php
@@ -131,14 +135,11 @@ include 'includes/header.php';
                 </form>
               <?php endif; ?>
 
-              <!-- Show Result Button -->
-              <div class="text-center">
-                <button id="showResultBtn" class="btn btn-primary">Show Results</button>
-              </div>
+              
 
               <!-- Results Section (Initially Hidden) -->
               <div id="resultsSection" style="display:none;">
-                <h4>Election Results:</h4>
+                
                 <div id="results"></div>
               </div>
 

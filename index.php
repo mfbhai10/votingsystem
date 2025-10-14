@@ -11,10 +11,10 @@
     }
 ?>
 <?php include 'includes/header.php'; ?>
-<body class="hold-transition login-page" style="background-image: url('images/img8.jpg'); background-size: cover; height: 100vh; margin: 0; display: flex; justify-content: center; align-items: center;">
+<body class="hold-transition login-page" style="background-image: url('images/woman-placing-her-ballot-election-box.jpg'); background-size: cover; height: 100vh; margin: 0; display: flex; justify-content: center; align-items: center; ">
     <div class="login-box" style="background: rgba(255, 255, 255, 0.9); border-radius: 15px; padding: 30px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);">
         <div class="login-logo" style="font-size: 36px; color: #0056b3; text-align: center;">
-            <b>Voting System</b>
+            <b>Vote</b>Xpress
         </div>
 
         <?php if (isset($_SESSION['success'])): ?>

@@ -8,7 +8,7 @@ session_start();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Voter Registration - Voting System</title>
+    <title>Voter Registration - <b>Vote</b>Xpress</title>
     
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
@@ -34,7 +34,7 @@ session_start();
     <nav class="navbar navbar-default">
         <div class="container-fluid">
             <div class="navbar-header">
-                <a class="navbar-brand" href="index.php">Voting System</a>
+                <a class="navbar-brand" href="index.php"><b>Vote</b>Xpress</a>
             </div>
             <ul class="nav navbar-nav navbar-right">
                 <li><a href="login.php"><i class="fa fa-sign-in"></i> Login</a></li>

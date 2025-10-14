@@ -8,7 +8,7 @@
 <body class="hold-transition login-page">
 <div class="login-box">
   	<div class="login-logo">
-  		<b>Voting System</b>
+  		<b>Vote</b>Xpress
   	</div>
   
   	<div class="login-box-body">
