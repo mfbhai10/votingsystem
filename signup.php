@@ -39,7 +39,7 @@ if (isset($_POST['signup'])) {
 
         // Unique filename for the photo
         $photoName = 'voter_' . uniqid('', true) . '.' . $ext;
-        $dest = '../images/' . $photoName;
+        $dest = 'images/' . $photoName;
 
         if (!move_uploaded_file($_FILES['photo']['tmp_name'], $dest)) {
             $_SESSION['error'] = 'Failed to upload photo.';
