@@ -33,7 +33,6 @@ while ($position = $positions->fetch_assoc()) {
     $cstmt->execute();
     $winner = $cstmt->get_result()->fetch_assoc();
 
-    // Create a Bootstrap card to display the election result for each position
     $resultsHtml .= "
         <div class='col-md-4 col-sm-6 mb-4'>
             <div class='card' style='border-radius: 15px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);'>
