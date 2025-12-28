@@ -2,9 +2,10 @@
 // admin/voters_add.php
 session_start();
 include 'includes/session.php';
+// Note: The admin session check should be included here if not in includes/session.php
 
 // Fetch available elections
-$stmt = $conn->prepare("SELECT * FROM elections WHERE status = 'open'"); // Only open elections
+$stmt = $conn->prepare("SELECT * FROM elections WHERE status = 'open'");
 $stmt->execute();
 $elections = $stmt->get_result();
 
@@ -14,10 +15,12 @@ if (isset($_POST['add'])) {
     $firstname = trim($_POST['firstname'] ?? '');
     $lastname  = trim($_POST['lastname']  ?? '');
     $password  = $_POST['password'] ?? '';
-    $election_id = $_POST['election_id'] ?? 0;
+    // CHANGE: Collect array of elections
+    $election_ids = $_POST['election_id'] ?? []; 
+    $election_ids = is_array($election_ids) ? array_map('intval', $election_ids) : [(int)$election_ids];
 
-    if ($voters_id === '' || $firstname === '' || $lastname === '' || $password === '' || $election_id === 0) {
-        $_SESSION['error'] = 'All fields (except photo) are required, including election selection.';
+    if ($voters_id === '' || $firstname === '' || $lastname === '' || $password === '' || empty($election_ids)) {
+        $_SESSION['error'] = 'All personal fields (except photo) are required, and you must select at least one election.';
         header('Location: voters.php');
         exit;
     }
@@ -25,8 +28,9 @@ if (isset($_POST['add'])) {
     // 2) Password Hashing
     $hashed = password_hash($password, PASSWORD_DEFAULT);
 
-    // 3) Photo Upload (Optional)
+    // 3) Photo Upload (Optional) - Logic remains the same
     $photoName = '';
+    // ... (Your photo upload logic here - unchanged) ...
     if (!empty($_FILES['photo']['name'])) {
         // File type safety
         $allowed = ['jpg','jpeg','png','gif','webp'];
@@ -46,24 +50,49 @@ if (isset($_POST['add'])) {
         }
     }
 
-    // 4) Insert into the database (prepared statement)
-    $stmt = $conn->prepare('INSERT INTO voters (voters_id, firstname, lastname, password, photo, election_id) VALUES (?,?,?,?,?,?)');
-    $stmt->bind_param('sssssi', $voters_id, $firstname, $lastname, $hashed, $photoName, $election_id);
 
-    if ($stmt->execute()) {
-        $_SESSION['success'] = 'New voter added successfully';
-    } else {
-        // Handle duplicate voters_id (MySQL error code 1062)
-        if ($conn->errno == 1062) {
-            // Rollback by deleting the uploaded photo if there's a duplicate voter ID
-            if ($photoName && file_exists('../images/' . $photoName)) {
-                @unlink('../images/' . $photoName);
-            }
-            $_SESSION['error'] = 'This Voter ID already exists. Use a different ID.';
-        } else {
-            $_SESSION['error'] = 'Failed to add voter.';
+    $conn->begin_transaction();
+    $error_occurred = false;
+    $new_voter_id = null;
+    
+    try {
+        // 4A) Insert into the voters table (REMOVED election_id column)
+        $stmt = $conn->prepare('INSERT INTO voters (voters_id, firstname, lastname, password, photo) VALUES (?,?,?,?,?)');
+        $stmt->bind_param('sssss', $voters_id, $firstname, $lastname, $hashed, $photoName);
+
+        if (!$stmt->execute()) {
+             // Handle duplicate voters_id 
+             if ($conn->errno == 1062) {
+                 throw new Exception('This Voter ID already exists. Use a different ID.');
+             } else {
+                 throw new Exception('Failed to add voter to the voters table.');
+             }
         }
+        
+        // Get the ID of the newly inserted voter
+        $new_voter_id = $conn->insert_id;
+
+        // 4B) Insert into voter_elections table
+        $ins_ve = $conn->prepare('INSERT INTO voter_elections (voter_id, election_id) VALUES (?,?)');
+        foreach ($election_ids as $eid) {
+            $ins_ve->bind_param('ii', $new_voter_id, $eid);
+            if (!$ins_ve->execute()) {
+                 throw new Exception('Failed to assign election(s) to voter.');
+            }
+        }
+        
+        $conn->commit();
+        $_SESSION['success'] = 'New voter added successfully and assigned to ' . count($election_ids) . ' election(s).';
+
+    } catch (Exception $e) {
+        $conn->rollback();
+        // Rollback by deleting the uploaded photo if a database error occurred
+        if ($photoName && file_exists('../images/' . $photoName)) {
+            @unlink('../images/' . $photoName);
+        }
+        $_SESSION['error'] = $e->getMessage();
     }
+
 
     header('Location: voters.php');
     exit;
@@ -97,9 +126,9 @@ if (isset($_POST['add'])) {
         </div>
 
         <div class="form-group">
-            <label for="election_id">Election</label>
-            <select class="form-control" name="election_id" id="election_id" required>
-                <option value="">Select Election</option>
+            <label for="election_id">Assign to Election(s) (Hold Ctrl/Cmd to select multiple)</label>
+            <select class="form-control" name="election_id[]" id="election_id" required multiple>
+                <?php $elections->data_seek(0); // Reset result pointer ?> 
                 <?php while ($election = $elections->fetch_assoc()): ?>
                     <option value="<?= $election['id'] ?>"><?= htmlspecialchars($election['title']) ?></option>
                 <?php endwhile; ?>

@@ -16,12 +16,21 @@
         <div class="box-body">
           <table id="example1" class="table table-bordered">
             <thead>
-              <tr><th>Photo</th><th>Voter ID</th><th>Firstname</th><th>Lastname</th><th>Election</th><th>Tools</th></tr>
+              <tr><th>Photo</th><th>Voter ID</th><th>Firstname</th><th>Lastname</th><th>Assigned Elections</th><th>Tools</th></tr>
             </thead>
             <tbody>
             <?php
-              // Fetch voters along with their associated election
-              $rs = $conn->query('SELECT v.*, e.title AS election_title FROM voters v LEFT JOIN elections e ON v.election_id = e.id ORDER BY v.lastname, v.firstname');
+              // Fetch voters and concatenate all assigned elections
+              $sql = "
+                SELECT v.*, 
+                    GROUP_CONCAT(e.title SEPARATOR '<br>') AS election_titles 
+                FROM voters v 
+                LEFT JOIN voter_elections ve ON v.id = ve.voter_id 
+                LEFT JOIN elections e ON ve.election_id = e.id
+                GROUP BY v.id
+                ORDER BY v.lastname, v.firstname
+              ";
+              $rs = $conn->query($sql);
               while($row = $rs->fetch_assoc()):
                 $image = (!empty($row['photo'])) ? '../images/'.$row['photo'] : '../images/profile.jpg'; ?>
                 <tr>
@@ -29,7 +38,7 @@
                   <td><?= htmlspecialchars($row['voters_id']) ?></td>
                   <td><?= htmlspecialchars($row['firstname']) ?></td>
                   <td><?= htmlspecialchars($row['lastname']) ?></td>
-                  <td><?= htmlspecialchars($row['election_title']) ?></td> <!-- Display Election Title -->
+                  <td><?= $row['election_titles'] ?></td> 
                   <td>
                     <button class="btn btn-success btn-sm edit btn-flat" data-id="<?= (int)$row['id'] ?>"><i class="fa fa-edit"></i> Edit</button>
                     <button class="btn btn-danger btn-sm delete btn-flat" data-id="<?= (int)$row['id'] ?>"><i class="fa fa-trash"></i> Delete</button>
@@ -44,7 +53,6 @@
   </div>
   <?php include 'includes/footer.php'; ?>
 
-  <!-- Modals -->
   <div class="modal fade" id="addnew"><div class="modal-dialog"><div class="modal-content">
     <form method="post" action="voters_add.php" enctype="multipart/form-data">
       <div class="modal-header"><button type="button" class="close" data-dismiss="modal">&times;</button><h4 class="modal-title">Add Voter</h4></div>
@@ -54,13 +62,11 @@
         <div class="form-group"><label>Lastname</label><input class="form-control" name="lastname" required></div>
         <div class="form-group"><label>Password</label><input type="password" class="form-control" name="password" required></div>
 
-        <!-- Election Selection Dropdown -->
         <div class="form-group">
-          <label for="election_id">Election</label>
-          <select class="form-control" name="election_id" id="election_id" required>
-            <option value="">Select Election</option>
+          <label for="election_id_modal">Assign to Election(s) (Hold Ctrl/Cmd to select multiple)</label>
+          <select class="form-control" name="election_id[]" id="election_id_modal" required multiple>
             <?php
-            // Fetch open elections
+            // Fetch open elections again for the modal
             $election_query = $conn->query("SELECT * FROM elections WHERE status = 'open'");
             while ($election = $election_query->fetch_assoc()): ?>
                 <option value="<?= $election['id'] ?>"><?= htmlspecialchars($election['title']) ?></option>
@@ -74,7 +80,6 @@
     </form>
   </div></div></div>
 
-  <!-- Edit Voter -->
   <div class="modal fade" id="edit"><div class="modal-dialog"><div class="modal-content">
     <form method="post" action="voters_edit.php">
       <input type="hidden" name="id" class="id">
@@ -89,7 +94,6 @@
     </form>
   </div></div></div>
 
-  <!-- Update Photo -->
   <div class="modal fade" id="edit_photo"><div class="modal-dialog"><div class="modal-content">
     <form method="post" action="voters_photo.php" enctype="multipart/form-data">
       <input type="hidden" name="id" class="id">
@@ -101,7 +105,6 @@
     </form>
   </div></div></div>
 
-  <!-- Delete Voter -->
   <div class="modal fade" id="delete"><div class="modal-dialog"><div class="modal-content">
     <form method="post" action="voters_delete.php">
       <input type="hidden" name="id" class="id">

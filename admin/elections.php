@@ -27,10 +27,15 @@
                       <a class="btn btn-xs btn-default" href="set_admin_election.php?id=<?= (int)$e['id'] ?>">Use</a>
                     <?php endif; ?>
                   </td>
-                  <td>
+                  <td class="text-nowrap">
+                    <a class="btn btn-xs btn-info" href="print.php?election_id=<?= (int)$e['id'] ?>" target="_blank" title="Print Tally Result">
+                        <i class="fa fa-print"></i> Print
+                    </a>
+                    
                     <a class="btn btn-xs btn-success" href="#" data-toggle="modal" data-target="#edit_<?= (int)$e['id'] ?>">Edit</a>
                     <a class="btn btn-xs btn-danger" href="elections_delete.php?id=<?= (int)$e['id'] ?>" onclick="return confirm('Delete election and all related data?')">Delete</a>
                   </td>
+
                 </tr>
 
                 <!-- Edit modal -->

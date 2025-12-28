@@ -18,7 +18,7 @@ if (isset($_SESSION['voter'])) {
     // Ensure a chosen election for voter pages except index/login/chooser
     $script = basename($_SERVER['PHP_SELF']);
     $public = ['index.php','login.php'];
-    $chooser = ['choose_election.php','set_election.php'];
+    $chooser = ['choose_election.php','select_election.php'];
 
     if (!in_array($script, $public) && !in_array($script, $chooser)) {
         if (empty($_SESSION['election_id'])) {

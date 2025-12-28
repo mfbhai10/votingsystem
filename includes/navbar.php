@@ -10,6 +10,11 @@
       <div class="collapse navbar-collapse pull-left" id="navbar-collapse"></div>
       <div class="navbar-custom-menu">
         <ul class="nav navbar-nav">
+
+        <li><a href='choose_election.php'>ELECTIONS</a></li>
+        <li><a href='results_dashboard.php'>LIVE RESULTS</a></li>
+        <li><a href="contact.php">CONTACT US</a></li>
+
           <li class="user user-menu">
             <a href="#">
               <img src="<?= (!empty($voter['photo'])) ? 'images/'.$voter['photo'] : 'images/profile.jpg' ?>" class="user-image" alt="User Image">

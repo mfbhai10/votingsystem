@@ -1,23 +1,34 @@
 <?php
-require 'includes/session.php';
+include 'includes/session.php';
 
-// Ensure the voter is registered for the correct election
-if (empty($_SESSION['election_id']) || (int)$_SESSION['election_id'] !== (int)$voter['election_id']) {
-    $_SESSION['error'] = 'You can only vote in your assigned election.';
+// 1. Check if an election has been chosen from the selection page
+if (empty($_SESSION['election_id'])) {
     header('Location: choose_election.php'); 
     exit;
 }
 
 $electionId = (int)$_SESSION['election_id'];
+$voterId = (int)$voter['id'];
 
-// Fetch the current election details
+// 2. Security Check: Verify the logged-in voter is actually registered for the selected election
+$stmt = $conn->prepare("SELECT 1 FROM voter_elections WHERE voter_id = ? AND election_id = ?");
+$stmt->bind_param('ii', $voterId, $electionId);
+$stmt->execute();
+if ($stmt->get_result()->num_rows === 0) {
+    $_SESSION['error'] = 'You are not registered for this election.';
+    unset($_SESSION['election_id']); // Clear invalid session data
+    header('Location: choose_election.php');
+    exit;
+}
+
+// 3. Fetch the current election details and check if it's open
 $chk = $conn->prepare("SELECT id, title FROM elections WHERE id=? AND status='open' AND starts_at <= NOW() AND ends_at >= NOW()");
 $chk->bind_param('i', $electionId);
 $chk->execute();
 $current_election = $chk->get_result()->fetch_assoc();
 
 if (!$current_election) {
-    $_SESSION['error'] = 'This election is not open right now.';
+    $_SESSION['error'] = 'This election is not open for voting right now.';
     header('Location: choose_election.php'); 
     exit;
 }
@@ -31,7 +42,9 @@ include 'includes/header.php';
   <div class="content-wrapper">
     <div class="container">
       <section class="content">
-        <h1 class="page-header text-center title"><b><?= strtoupper($current_election['title']) ?></b></h1>
+        <h1 class="page-header text-center title"><b><?= strtoupper(htmlspecialchars($current_election['title'])) ?></b></h1>
+        <div class="text-center"><a href="choose_election.php" class="btn btn-default btn-sm">Change Election</a></div>
+        <br>
 
         <div class="row">
           <div class="col-sm-10 col-sm-offset-1">
@@ -55,32 +68,30 @@ include 'includes/header.php';
             </div>
 
             <?php
-              $stmt = $conn->prepare('SELECT 1 FROM votes WHERE election_id=? AND voters_id=? LIMIT 1');
-              $stmt->bind_param('ii', $electionId, $voter['id']);
-              $stmt->execute();
-              $alreadyVoted = $stmt->get_result()->num_rows > 0;
+              $stmt_voted = $conn->prepare('SELECT 1 FROM votes WHERE election_id=? AND voters_id=? LIMIT 1');
+              $stmt_voted->bind_param('ii', $electionId, $voter['id']);
+              $stmt_voted->execute();
+              $alreadyVoted = $stmt_voted->get_result()->num_rows > 0;
 
               if ($alreadyVoted): ?>
                 <div class="text-center">
                   <h3>You have already voted in this election.</h3>
                   <a href="#view" data-toggle="modal" class="btn btn-flat btn-primary btn-lg">View Ballot</a>
+                  <button id="showResultBtn" class="btn btn-info btn-lg">Show Results</button>
                 </div>
-                <!-- Show Result Button -->
-              <div class="text-center">
-                <button id="showResultBtn" class="btn btn-primary">Show Results</button>
-              </div>
               <?php else: ?>
                 <form method="POST" id="ballotForm" action="submit_ballot.php">
+                  <input type="hidden" name="election_id" value="<?= $electionId ?>">
                   <?php
-                    require 'includes/slugify.php';
+                    include 'includes/slugify.php';
                     $pstmt = $conn->prepare('SELECT * FROM positions WHERE election_id=? ORDER BY priority ASC');
                     $pstmt->bind_param('i', $electionId);
                     $pstmt->execute();
                     $positions = $pstmt->get_result();
 
                     while ($row = $positions->fetch_assoc()):
-                      $cstmt = $conn->prepare('SELECT * FROM candidates WHERE election_id=? AND position_id=?');
-                      $cstmt->bind_param('ii', $electionId, $row['id']);
+                      $cstmt = $conn->prepare('SELECT * FROM candidates WHERE position_id=?');
+                      $cstmt->bind_param('i', $row['id']);
                       $cstmt->execute();
                       $cands = $cstmt->get_result();
                       $candidateHtml = '';
@@ -88,17 +99,6 @@ include 'includes/header.php';
                       while ($crow = $cands->fetch_assoc()):
                         $slug = slugify($row['description']);
                         $checked = '';
-                        if (isset($_SESSION['post'][$slug])) {
-                          $value = $_SESSION['post'][$slug];
-                          if (is_array($value)) {
-                            foreach ($value as $val) {
-                              if ((int)$val === (int)$crow['id']) $checked = 'checked';
-                            }
-                          } else {
-                            if ((int)$value === (int)$crow['id']) $checked = 'checked';
-                          }
-                        }
-
                         $input = ($row['max_vote'] > 1)
                           ? '<input type="checkbox" class="flat-red '.$slug.'" name="'.$slug.'[]" value="'.$crow['id'].'" '.$checked.'>'
                           : '<input type="radio" class="flat-red '.$slug.'" name="'.slugify($row['description']).'" value="'.$crow['id'].'" '.$checked.'>';
@@ -110,18 +110,12 @@ include 'includes/header.php';
                     <div class="row">
                       <div class="col-xs-12">
                         <div class="box box-solid" id="<?= $row['id'] ?>">
-                          <div class="box-header with-border">
-                            <h3 class="box-title"><b><?= htmlspecialchars($row['description']) ?></b></h3>
-                          </div>
+                          <div class="box-header with-border"><h3 class="box-title"><b><?= htmlspecialchars($row['description']) ?></b></h3></div>
                           <div class="box-body">
                             <p><?= $instruct ?>
-                              <span class="pull-right">
-                                <button type="button" class="btn btn-success btn-sm btn-flat reset" data-desc="<?= slugify($row['description']) ?>"><i class="fa fa-refresh"></i> Reset</button>
-                              </span>
+                              <span class="pull-right"><button type="button" class="btn btn-success btn-sm btn-flat reset" data-desc="<?= slugify($row['description']) ?>"><i class="fa fa-refresh"></i> Reset</button></span>
                             </p>
-                            <div id="candidate_list">
-                              <ul><?= $candidateHtml ?></ul>
-                            </div>
+                            <div id="candidate_list"><ul><?= $candidateHtml ?></ul></div>
                           </div>
                         </div>
                       </div>
@@ -134,16 +128,11 @@ include 'includes/header.php';
                   </div>
                 </form>
               <?php endif; ?>
-
               
-
-              <!-- Results Section (Initially Hidden) -->
-              <div id="resultsSection" style="display:none;">
-                
+              <div id="resultsSection" style="display:none; margin-top: 30px;">
+                <h2 class="text-center">Election Results</h2>
                 <div id="results"></div>
               </div>
-
-            </div>
           </div>
         </div>
       </section>
@@ -156,79 +145,44 @@ include 'includes/header.php';
 
 <script>
 $(function(){
-	$('.content').iCheck({
-		checkboxClass: 'icheckbox_flat-green',
-		radioClass: 'iradio_flat-green'
-	});
+  // Your existing JS code...
+  $('.content').iCheck({
+    checkboxClass: 'icheckbox_flat-green',
+    radioClass: 'iradio_flat-green'
+  });
+  $(document).on('click', '.reset', function(e){ e.preventDefault(); var desc = $(this).data('desc'); $('.'+desc).iCheck('uncheck'); });
+  $(document).on('click', '.platform', function(e){ e.preventDefault(); $('#platform').modal('show'); var platform = $(this).data('platform'); var fullname = $(this).data('fullname'); $('.candidate').html(fullname); $('#plat_view').html(platform); });
+  $('#preview').click(function(e){
+    e.preventDefault();
+    var form = $('#ballotForm').serialize();
+    if(form == ''){
+      $('.message').html('You must vote for at least one candidate');
+      $('#alert').show();
+    } else {
+      $.ajax({
+        type: 'POST', url: 'preview.php', data: form, dataType: 'json',
+        success: function(response){
+          if(response.error){
+            $('.message').html(response.message.join(''));
+            $('#alert').show();
+          } else {
+            $('#preview_modal').modal('show');
+            $('#preview_body').html(response.list);
+          }
+        }
+      });
+    }
+  });
 
-	$(document).on('click', '.reset', function(e){
-	    e.preventDefault();
-	    var desc = $(this).data('desc');
-	    $('.'+desc).iCheck('uncheck');
-	});
-
-	$(document).on('click', '.platform', function(e){
-		e.preventDefault();
-		$('#platform').modal('show');
-		var platform = $(this).data('platform');
-		var fullname = $(this).data('fullname');
-		$('.candidate').html(fullname);
-		$('#plat_view').html(platform);
-	});
-
-	$('#preview').click(function(e){
-		e.preventDefault();
-		var form = $('#ballotForm').serialize();
-		if(form == ''){
-			$('.message').html('You must vote atleast one candidate');
-			$('#alert').show();
-		}
-		else{
-			$.ajax({
-				type: 'POST',
-				url: 'preview.php',
-				data: form,
-				dataType: 'json',
-				success: function(response){
-					if(response.error){
-						var errmsg = '';
-						var messages = response.message;
-						for (i in messages) {
-							errmsg += messages[i]; 
-						}
-						$('.message').html(errmsg);
-						$('#alert').show();
-					}
-					else{
-						$('#preview_modal').modal('show');
-						$('#preview_body').html(response.list);
-					}
-				}
-			});
-		}
-		
-	});
-
-});
-
-$(document).ready(function(){
-  // Handle click event on "Show Results" button
+  // Handle click on "Show Results" button
   $('#showResultBtn').click(function(){
-    // Show the results section
-    $('#resultsSection').show();
-    
-    // Fetch the results using AJAX
+    $('#resultsSection').slideToggle();
     $.ajax({
-      url: 'get_results.php',  // The PHP file that fetches the results
+      url: 'get_results.php',
       type: 'GET',
-      data: { election_id: <?= $electionId ?> },  // Pass the election ID
-      success: function(data) {
-        // Populate the results section with the data received
-        $('#results').html(data);
-      },
-      error: function() {
-        $('#results').html('<p class="text-danger">Error fetching results.</p>');
-      }
+      data: { election_id: <?= $electionId ?> },
+      success: function(data) { $('#results').html(data); },
+      error: function() { $('#results').html('<p class="text-danger">Error fetching results.</p>');}
     });
   });
 });

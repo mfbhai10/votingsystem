@@ -1,77 +1,144 @@
 <?php
-include 'includes/session.php';
+// admin/print.php - Generates a PDF of Tally Results for a specific Election
+include 'includes/session.php'; // Ensures admin is logged in and connects to DB
+include 'includes/conn.php';     // Explicitly include connection if session doesn't
 
-// Helper function: প্রতিটি পজিশনের জন্য টেবিলের রো বানাবে
-function generateRow($conn, $adminElectionId){
+// --- 1. ID RETRIEVAL AND VALIDATION (CRITICAL) ---
+// Since the print button passes the ID via URL, we only rely on $_GET.
+if (!isset($_GET['election_id']) || empty($_GET['election_id'])) {
+    $_SESSION['error'] = "Error: No Election ID specified for printing.";
+    header('Location: home.php');
+    exit;
+}
+
+$adminElectionId = (int)$_GET['election_id'];
+// --------------------------------------------------
+
+/**
+ * Helper function: Generates the HTML table rows for all positions and candidates.
+ * This version uses a single, efficient LEFT JOIN/GROUP BY query per position.
+ * @param mysqli $conn The database connection object.
+ * @param int $electionId The ID of the election to process.
+ * @return string The generated HTML table content.
+ */
+function generateRow($conn, $electionId){
     $contents = '';
 
-    $p = $conn->prepare("SELECT * FROM positions WHERE election_id=? ORDER BY priority ASC");
-    $p->bind_param('i', $adminElectionId);
+    // 1. Fetch Positions for the specified Election
+    $p = $conn->prepare("SELECT id, description FROM positions WHERE election_id=? ORDER BY priority ASC");
+    $p->bind_param('i', $electionId);
     $p->execute();
     $query = $p->get_result();
 
     while($row = $query->fetch_assoc()){
+        $position_id = $row['id'];
+        $position_desc = htmlspecialchars($row['description']);
+        
+        // Position Header Row
         $contents .= '
-            <tr>
-                <td colspan="2" align="center" style="font-size:15px;"><b>'.
-                    htmlspecialchars($row['description']).'</b></td>
+            <tr style="background-color: #f0f0f0;">
+                <td colspan="2" align="center" style="font-size:16px; font-weight: bold; padding: 5px;">
+                    '.$position_desc.'
+                </td>
             </tr>
-            <tr>
-                <td width="80%"><b>Candidates</b></td>
-                <td width="20%"><b>Votes</b></td>
+            <tr style="background-color: #e0e0e0;">
+                <td width="75%" style="padding: 5px;"><b>Candidate</b></td>
+                <td width="25%" style="padding: 5px;"><b>Votes</b></td>
             </tr>
         ';
-
-        $c = $conn->prepare("SELECT * FROM candidates WHERE election_id=? AND position_id=? ORDER BY lastname ASC");
-        $c->bind_param('ii', $adminElectionId, $row['id']);
+        
+        // 2. CONSOLIDATED VOTE COUNTING QUERY (EFFICIENT FIX)
+        $csql = "
+            SELECT 
+                c.firstname, 
+                c.lastname, 
+                COUNT(v.id) AS total_votes 
+            FROM candidates c
+            LEFT JOIN votes v ON c.id = v.candidate_id AND v.election_id = ?
+            WHERE c.election_id = ? AND c.position_id = ?
+            GROUP BY c.id
+            ORDER BY total_votes DESC, c.lastname ASC
+        ";
+        
+        $c = $conn->prepare($csql);
+        $c->bind_param('iii', $electionId, $electionId, $position_id);
         $c->execute();
         $cquery = $c->get_result();
 
-        while($crow = $cquery->fetch_assoc()){
-            $v = $conn->prepare("SELECT COUNT(*) as total FROM votes WHERE election_id=? AND candidate_id=?");
-            $v->bind_param('ii', $adminElectionId, $crow['id']);
-            $v->execute();
-            $votes = $v->get_result()->fetch_assoc()['total'];
+        $position_total_votes = 0;
 
+        while($crow = $cquery->fetch_assoc()){
+            $votes = $crow['total_votes'];
+            $position_total_votes += $votes;
+
+            // Candidate Data Row
             $contents .= '
                 <tr>
-                    <td>'.htmlspecialchars($crow['lastname'].", ".$crow['firstname']).'</td>
-                    <td>'.$votes.'</td>
+                    <td style="padding: 5px;">'.htmlspecialchars($crow['lastname'].", ".$crow['firstname']).'</td>
+                    <td style="text-align: center; padding: 5px;">'.$votes.'</td>
                 </tr>
             ';
         }
+        
+        // Position Footer Row (Total Votes for the position)
+        $contents .= '
+            <tr style="background-color: #ffffff; font-weight: bold; border-top: 2px solid black;">
+                <td style="padding: 5px; text-align: right;">TOTAL VOTES FOR '.$position_desc.':</td>
+                <td style="text-align: center; padding: 5px;">'.$position_total_votes.'</td>
+            </tr>
+        ';
     }
 
     return $contents;
 }
 
-// নির্বাচিত ইলেকশনের নাম আনছি
-$ename = '';
+// 3. Fetch the Election Title
+$ename = 'Election';
 $es = $conn->prepare("SELECT title FROM elections WHERE id=?");
 $es->bind_param('i', $adminElectionId);
 $es->execute();
-$ename = $es->get_result()->fetch_assoc()['title'] ?? 'Election';
+$result_title = $es->get_result();
 
+if ($result_title->num_rows > 0) {
+    $ename = $result_title->fetch_assoc()['title'];
+}
+
+// --- 4. TCPDF SETUP ---
 require_once('../tcpdf/tcpdf.php');
-$pdf = new TCPDF('P', PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
+
+class MYPDF extends TCPDF {
+    public function Footer() {
+        $this->SetY(-15);
+        $this->SetFont('helvetica', 'I', 8);
+        $this->Cell(0, 10, 'Generated by Voting System | Page '.$this->getAliasNumPage().'/'.$this->getAliasNbPages(), 0, false, 'R', 0, '', 0, false, 'T', 'M');
+    }
+}
+
+$pdf = new MYPDF('P', PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
 $pdf->SetCreator(PDF_CREATOR);
-$pdf->SetTitle('Result: '.$ename);
+$pdf->SetTitle('Tally Result: '.$ename);
+
 $pdf->setPrintHeader(false);
-$pdf->setPrintFooter(false);
-$pdf->SetMargins(PDF_MARGIN_LEFT, '10', PDF_MARGIN_RIGHT);
-$pdf->SetAutoPageBreak(TRUE, 10);
-$pdf->SetFont('helvetica', '', 11);
+$pdf->setPrintFooter(true); 
+
+$pdf->SetMargins(15, 10, 15);
+$pdf->SetAutoPageBreak(TRUE, 20); // Increased bottom margin for footer
+$pdf->SetFont('helvetica', '', 10);
 $pdf->AddPage();
 
+// --- 5. HTML Content Generation ---
 $content = '
-    <h2 align="center">'.$ename.'</h2>
-    <h4 align="center">Tally Result</h4>
-    <table border="1" cellspacing="0" cellpadding="3">
+    <h1 align="center" style="font-size: 20px; font-weight: bold;">'.$ename.'</h1>
+    <h3 align="center" style="font-size: 14px; margin-bottom: 10px;">Official Tally Result Summary</h3>
+    
+    <table border="1" cellspacing="0" cellpadding="3" style="width: 100%; border-collapse: collapse;">
 ';
 $content .= generateRow($conn, $adminElectionId);
 $content .= '</table>';
 
-$pdf->writeHTML($content);
-$pdf->Output('election_result.pdf', 'I');
+// Write and Output PDF
+$pdf->writeHTML($content, true, false, true, false, '');
+
+$pdf->Output('election_result_'.$adminElectionId.'.pdf', 'D');
 
 ?>

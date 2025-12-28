@@ -248,3 +248,28 @@ ALTER TABLE voters
   ADD CONSTRAINT fk_voters_election
   FOREIGN KEY (election_id) REFERENCES elections(id)
   ON DELETE CASCADE;
+
+
+
+
+-- Drop the old foreign key and column from the voters table
+-- Note: This will fail if the constraint doesn't exist, which is okay.
+-- Run these commands one by one if you encounter issues.
+ALTER TABLE `voters` DROP FOREIGN KEY `fk_voters_election`;
+ALTER TABLE `voters` DROP COLUMN `election_id`;
+
+-- 1. Create the new voter_elections junction table
+-- This table links voters to the elections they are registered for.
+CREATE TABLE `voter_elections` (
+  `voter_id` int(11) NOT NULL,
+  `election_id` int(11) NOT NULL,
+  PRIMARY KEY (`voter_id`, `election_id`),
+  KEY `election_id` (`election_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 2. Add foreign key constraints for data integrity
+ALTER TABLE `voter_elections`
+  ADD CONSTRAINT `fk_voter_elections_voter` FOREIGN KEY (`voter_id`) REFERENCES `voters` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `fk_voter_elections_election` FOREIGN KEY (`election_id`) REFERENCES `elections` (`id`) ON DELETE CASCADE;
+
+COMMIT;

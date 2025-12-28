@@ -1,95 +1,88 @@
 <?php
-require 'includes/session.php';
-
-// Fetch open elections (display all open elections)
-$stmt = $conn->prepare("SELECT id, title, starts_at, ends_at 
-                        FROM elections 
-                        WHERE status='open' AND starts_at <= NOW() AND ends_at >= NOW() 
-                        ORDER BY ends_at ASC");
-$stmt->execute();
-$res = $stmt->get_result();
-
+include 'includes/session.php';
 include 'includes/header.php';
+
+// This is the crucial change: Fetch only the open elections this specific voter is registered for.
+$voter_id = $voter['id'];
+
+$sql = "
+    SELECT e.id, e.title, e.description, e.ends_at
+    FROM elections e
+    INNER JOIN voter_elections ve ON e.id = ve.election_id
+    WHERE ve.voter_id = ? 
+      AND e.status = 'open' 
+      AND e.starts_at <= NOW() 
+      AND e.ends_at >= NOW()
+    ORDER BY e.ends_at ASC
+";
+
+$stmt = $conn->prepare($sql);
+$stmt->bind_param('i', $voter_id);
+$stmt->execute();
+$result = $stmt->get_result();
+
 ?>
 <body class="hold-transition skin-blue layout-top-nav">
 <div class="wrapper">
-  <?php include 'includes/navbar.php'; ?>
-  <div class="content-wrapper">
-    <div class="container">
-      <section class="content">
-        <h1 class="page-header text-center title"><b>Select an Election</b></h1>
-        <div class="row">
-          <div class="col-sm-8 col-sm-offset-2">
-            <?php if (isset($_SESSION['error'])): ?>
-              <div class="alert alert-danger">
-                <?= $_SESSION['error']; unset($_SESSION['error']); ?>
-              </div>
-            <?php endif; ?>
-            <?php if ($res->num_rows === 0): ?>
-              <div class="alert alert-info">No active elections available at the moment.</div>
-            <?php else: ?>
-              <div class="list-group">
-                <?php while ($e = $res->fetch_assoc()): ?>
-                  <a class="list-group-item" href="set_election.php?id=<?= (int)$e['id'] ?>">
-                    <h4 class="list-group-item-heading"><?= htmlspecialchars($e['title']) ?></h4>
-                    <p class="list-group-item-text">Open until <?= htmlspecialchars($e['ends_at']) ?></p>
-                  </a>
-                <?php endwhile; ?>
-              </div>
-            <?php endif; ?>
-            <!-- Display All Elections Live Results -->
-            <div id="live-elections-results"></div>
-          </div>
+
+    <?php include 'includes/navbar.php'; ?>
+
+    <div class="content-wrapper">
+        <div class="container">
+            <section class="content">
+                <h1 class="page-header text-center title"><b>CHOOSE YOUR ELECTION</b></h1>
+                <div class="row">
+                    <div class="col-sm-10 col-sm-offset-1">
+                        <?php if (isset($_SESSION['error'])): ?>
+                            <div class="alert alert-danger alert-dismissible">
+                                <button type="button" class="close" data-dismiss="alert">&times;</button>
+                                <?= $_SESSION['error']; unset($_SESSION['error']); ?>
+                            </div>
+                        <?php endif; ?>
+
+                        <?php if ($result->num_rows < 1): ?>
+                            <div class="box box-info">
+                                <div class="box-body">
+                                    <div class="text-center">
+                                        <h3><i class="fa fa-info-circle"></i> No Open Elections</h3>
+                                        <p>You are not currently registered for any open elections.</p>
+                                        <p>Please check back later or contact an administrator if you believe this is an error.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        <?php else: ?>
+                            <div class="row">
+                                <?php while ($election = $result->fetch_assoc()): ?>
+                                    <div class="col-md-6">
+                                        <div class="box box-solid box-primary">
+                                            <div class="box-header with-border">
+                                                <h3 class="box-title"><?= htmlspecialchars($election['title']) ?></h3>
+                                                <div class="box-tools pull-right">
+                                                    <span class="badge bg-green">OPEN</span>
+                                                </div>
+                                            </div>
+                                            <div class="box-body">
+                                                <p><i class="fa fa-calendar-times-o"></i> **Ends:** <?= date('M j, Y, g:i a', strtotime($election['ends_at'])) ?></p>
+                                                <p style="margin-top: 10px;">
+                                                    <?= htmlspecialchars(substr($election['description'], 0, 150)) . (strlen($election['description']) > 150 ? '...' : '') ?>
+                                                </p>
+                                            </div>
+                                            <div class="box-footer text-center">
+                                                <a href="select_election.php?id=<?= $election['id'] ?>" class="btn btn-lg btn-block btn-success">
+                                                    <i class="fa fa-check-square-o"></i> Select and Vote
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                <?php endwhile; ?>
+                            </div>
+                            <?php endif; ?>
+                    </div>
+                </div>
+            </section>
         </div>
-      </section>
     </div>
-  </div>
 </div>
 <?php include 'includes/scripts.php'; ?>
-
-<script>
-// Fetch and display live results for all elections
-function fetchAllLiveResults() {
-    $.ajax({
-        url: 'get_all_live_results.php',  // PHP script that fetches live vote counts for all elections
-        method: 'GET',
-        success: function(response) {
-            var data = JSON.parse(response);
-            var resultsHtml = '';
-            
-            data.forEach(function(election) {
-                resultsHtml += '<div class="card mb-4">';
-                resultsHtml += '<div class="card-header" style="background-color: #3498db; color: white; border-radius: 15px 15px 0 0;">';
-                resultsHtml += '<h5 class="card-title text-center">' + election.election_title + '</h5>';
-                resultsHtml += '</div>';
-                resultsHtml += '<div class="card-body">';
-                
-                election.positions.forEach(function(position) {
-                    resultsHtml += '<h6>' + position.position + ':</h6>';
-                    resultsHtml += '<ul>';
-                    position.candidates.forEach(function(candidate) {
-                        resultsHtml += '<li>' + candidate.candidate + ': ' + candidate.vote_count + ' votes</li>';
-                    });
-                    resultsHtml += '</ul>';
-                });
-
-                resultsHtml += '</div></div>';
-            });
-
-            // Update the page with the election results
-            $('#live-elections-results').html(resultsHtml);
-        },
-        error: function() {
-            $('#live-elections-results').html('<p>Error fetching live results.</p>');
-        }
-    });
-}
-
-// Optionally, set up polling to fetch results every 5 seconds (you can adjust the interval)
-setInterval(fetchAllLiveResults, 5000);
-
-// Call it once initially to populate the results immediately
-fetchAllLiveResults();
-</script>
 </body>
 </html>

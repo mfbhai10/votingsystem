@@ -96,9 +96,9 @@
       <div class="row">
         <div class="col-xs-12">
           <h3>Votes Tally
-            <span class="pull-right">
+            <!-- <span class="pull-right">
               <a href="print.php" class="btn btn-success btn-sm btn-flat"><span class="glyphicon glyphicon-print"></span> Print</a>
-            </span>
+            </span> -->
           </h3>
         </div>
       </div>
